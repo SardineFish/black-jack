@@ -72,7 +72,7 @@ void cursorPreLine(int n)
 }
 void setCursorPos(int x,int y)
 {
-	printf("\e[%d;%dH",x,y);
+	printf("\e[%d;%dH",y,x);
 }
 void erase(int n)
 {
