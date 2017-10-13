@@ -3,8 +3,6 @@
 #include <math.h>
 #include <time.h>
 #include <unistd.h>
-#include <memory.h>
-#include <curses.h>
 #include <ncurses.h>
 #include <iostream>
 #include <sstream>
@@ -29,6 +27,10 @@ void shuffle(int *rlist);
 void readline(char* lnptr, int size, FILE *fp);
 void printGame();
 char waitInput();
+void AIHit();
+void dealerWin();
+void playerWin();
+void push();
 void msleep(long milisec)
 {
 	usleep(milisec*1000);
@@ -47,10 +49,11 @@ struct Player
 	int count=0;
 	int money=0;
 	bool showCard=false;
+	int total();
 };
 Poker pokers[CARD_COUNT];
 Poker pokerBack;
-int* pokerShuffled;
+int pokerShuffled[CARD_COUNT];
 int pokerIdx;
 Player player,dealer;
 int main()
@@ -88,6 +91,7 @@ int main()
 	printf("是否开始游戏？(Y/n 回复TD退出游戏)");
 	char text[1024];
 	scanf("%s",&text);
+	waitInput();
 	if(text=="TD")
 		exit(0);
 	msleep(1000);
@@ -98,22 +102,49 @@ int main()
 	{
 		printf("洗牌...洗牌...洗牌\n");
 		pokerIdx = 0;
+		/*
 		if(pokerShuffled==NULL)
 			pokerShuffled = (int*)malloc(sizeof(int)*CARD_COUNT);
+		*/
 		shuffle(pokerShuffled);
-		Hit:
-		printGame();
-		printf("要牌么？(Y/n)");
-		input = waitInput();
-		if(input == EOF)
-			input = '\n';
-		while (input == 'Y' || input == 'y' || input == '\n')
+		do
 		{
-			player.cards[player.count++]=pokerShuffled[pokerIdx++];
-			goto Hit;
-			
+			printGame();
+			printf("要牌么？(Y/n)");
+			input = waitInput();
+			if(input == 'Y' || input == 'y' || inut == '\n')
+				player.cards[player.count++]=pokerShuffled[pokerIdx++];
+			if(player.total()>21)
+			{
+				printf("\nBust!\n");
+				dealerWin();
+				goto EndGame;
+			}
+
 		}
-		getchar();
+		while (input == 'Y' || input == 'y' || input == '\n');
+		while (AIHit())
+		{
+			printGame();
+			dealer.cards[dealer.count++] = pokerShuffled[pokerIdx++];
+
+			if(dealer.total()>21)
+			{
+				printf("\nBust!\n");
+				playerWin();
+				goto EndGame;
+			}
+			msleep(1000);
+		}
+		if(player.total()>dealer.total())
+			playerWin();
+		else if (player.total()==dealer.total())
+			push();
+		else 
+			dealerWin();
+EndGame:
+
+		input = waitInput();
 	}
 	return 0;
 }
@@ -257,7 +288,7 @@ void printGame()
 	line += 3;
 	for(int i=0;i<dealer.count;i++)
 	{
-		pokers[dealer.cards[i]].print((CARD_WIDTH+1)*i,line);
+		pokers[dealer.cards[i]].print((CARD_WIDTH + 1) * i + 1, line);
 	}
 	line += CARD_HEIGHT + 2;
 	setCursorPos(1,line);
@@ -266,7 +297,7 @@ void printGame()
 	line+=3;
 	for(int i=0;i<player.count;i++)
 	{
-		pokers[player.cards[i]].print((CARD_WIDTH + 1) * i, line);
+		pokers[player.cards[i]].print((CARD_WIDTH + 1) * i + 1, line);
 	}
 	line += CARD_HEIGHT + 2;
 	setCursorPos(1,line);
