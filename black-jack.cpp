@@ -32,7 +32,7 @@ struct Player
 {
 	int cards[CARD_COUNT];
 	int count=0;
-	int money=0;
+	int money=1000;
 	bool showCard=false;
 	int total();
 };
@@ -62,6 +62,7 @@ int pokerShuffled[CARD_COUNT];
 int pokerIdx;
 double P[11];
 int pokerCount[11];
+double stake=0;
 Player player,dealer;
 int main()
 {
@@ -79,7 +80,7 @@ int main()
 	char input='y';
 	char text[1024];
 	screen.clear();
-	goto Start;
+	//goto Start;
 	setCursorPos(1,1);
 	printf("*************************\n\n");
 	printf("          好消息         \n\n");
@@ -113,14 +114,31 @@ int main()
 	msleep(1000);
 	printf("你没有选择的权力，开始吧！！！！\n\n");
 	msleep(3000);
-	Start:
+Start:
+	dealer.money=2000;
+	player.money=1000;
 	while(input=='y' || input=='Y' || input == '\n')
 	{
-		printf("洗牌...洗牌...洗牌\n");
+Bet:
+		printf("你现在有 $%d ，你希望下多少的赌注？:",player.money);
+		scanf("%lf",&stake);
+		waitInput();
+		stake=(int)stake;
+		if(stake<=0)
+		{
+			printf("这点钱也敢进赌场？\n\n");
+			goto Bet;
+		}
+		if(stake > player.money)
+		{
+			printf("你没那么多钱哦~\n\n");
+			goto Bet;
+		}
 		pokerIdx = 0;
 		player.count=0;
 		dealer.count=0;
 		dealer.showCard=false;
+		printf("洗牌...洗牌...洗牌\n");
 		shuffle(pokerShuffled);
 		printGame();
 		msleep(800);
@@ -437,19 +455,52 @@ void printGame()
 }
 void dealerWin()
 {
+	player.money -= stake;
+	dealer.money += stake;
 	printf("\n\n");
 	printf("你输啦！！！哈哈哈哈哈哈！！！！\n\n");
 	msleep(1000);
-	printf("不再来一局何以挽回颜面？！\n\n");
+	if(player.money>0)
+		printf("不再来一局何以挽回颜面？！\n\n");
+	else
+	{
+		printf("哟~没钱啦？\n\n");
+		msleep(800);
+		printf("借点高利贷吧？\n\n");
+		msleep(800);
+		printf("......\n\n");
+		msleep(800);
+		printf("你被强制发放了 $1000 的高利贷\n\n");
+		player.money+=1000;
+
+	}
 }
 void playerWin()
 {
+	dealer.money -= stake;
+	player.money += stake;
 	printf("\n\n");
 	printf("Emmmmmmmmm.........\n\n");
 	msleep(1000);
 	printf("这一定是Ai算法的锅....\n");
 	msleep(800);
-	printf("开发者刚刚优化了Ai算法，不再来一局？\n\n");
+	if(dealer.money > 0)
+		printf("开发者刚刚优化了Ai算法，不再来一局？\n\n");
+	else 
+	{
+		printf("完……庄家没钱了 Orz。\n\n");
+		msleep(800);
+		printf("老板杀了一个程序猿祭天，并获得了 dealer.money += 2000;");
+		/*
+		printf("dealer");
+		printRed(".");
+		printf("money ");
+		printBlue("+= ");
+		printGreen("2000");
+		printRed(";");
+		*/
+		dealer.money += 2000;
+	}
 }
 void push()
 {
