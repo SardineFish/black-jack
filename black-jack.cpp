@@ -22,24 +22,6 @@ struct Poker
 	char graphic[CARD_INNER_HEIGHT][CARD_WIDTH + 16];
 	void print(int x0,int y0);
 };
-void init();
-void initAI();
-void shuffle(int *rlist);
-void readline(char* lnptr, int size, FILE *fp);
-void printGame();
-double Sum(double* arr, int from, int to);
-long Sum(long* arr, int from, int to);
-char waitInput();
-bool AIHit();
-void dealerWin();
-void playerWin();
-void push();
-void msleep(long milisec)
-{
-	usleep(milisec*1000);
-}
-//char getch();
-Screen screen;
 template <class T>
 struct Node
 {
@@ -54,6 +36,26 @@ struct Player
 	bool showCard=false;
 	int total();
 };
+void init();
+void initAI();
+void shuffle(int *rlist);
+void readline(char* lnptr, int size, FILE *fp);
+void printGame();
+double Sum(double* arr, int from, int to);
+long Sum(long* arr, int from, int to);
+char waitInput();
+double Prob(int point, int ex, int depth);
+bool AIHit(Player* ai, Player* opp);
+void deal(Player* player);
+void dealerWin();
+void playerWin();
+void push();
+void msleep(long milisec)
+{
+	usleep(milisec*1000);
+}
+//char getch();
+Screen screen;
 Poker pokers[CARD_COUNT];
 Poker pokerBack;
 int pokerShuffled[CARD_COUNT];
@@ -63,11 +65,21 @@ int pokerCount[11];
 Player player,dealer;
 int main()
 {
-	
+	/*
+	initAI();
+	while(true)
+	{
+		int point,ex;
+		scanf("%d %d",&point, &ex);
+		printf("Prob=%lf\n",Prob(point,ex,0));
+	}
+	*/
 	screen = getScreen();
 	init();
 	char input='y';
+	char text[1024];
 	screen.clear();
+	goto Start;
 	setCursorPos(1,1);
 	printf("*************************\n\n");
 	printf("          好消息         \n\n");
@@ -94,7 +106,6 @@ int main()
 	msleep(3000);
 	printf("欢迎来到   * 澳门首家线上赌场 *  \n\n");
 	printf("是否开始游戏？(Y/n 回复TD退出游戏)");
-	char text[1024];
 	scanf("%s",text);
 	waitInput();
 	if(text=="TD")
@@ -102,23 +113,37 @@ int main()
 	msleep(1000);
 	printf("你没有选择的权力，开始吧！！！！\n\n");
 	msleep(3000);
-	
-	while(input=='y' || input=='Y')
+	Start:
+	while(input=='y' || input=='Y' || input == '\n')
 	{
 		printf("洗牌...洗牌...洗牌\n");
 		pokerIdx = 0;
-		/*
-		if(pokerShuffled==NULL)
-			pokerShuffled = (int*)malloc(sizeof(int)*CARD_COUNT);
-		*/
+		player.count=0;
+		dealer.count=0;
 		shuffle(pokerShuffled);
+		printGame();
+		msleep(500);
+		deal(&dealer);
+		printGame();
+		msleep(500);
+		deal(&dealer);
+		printGame();
+		msleep(500);
+		deal(&player);
+		printGame();
+		msleep(500);
+		deal(&player);
+		printGame();
 		do
 		{
 			printGame();
 			printf("要牌么？(Y/n)");
 			input = waitInput();
 			if(input == 'Y' || input == 'y' || input == '\n')
-				player.cards[player.count++]=pokerShuffled[pokerIdx++];
+			{
+				deal(&player);
+			}
+			printGame();
 			if(player.total()>21)
 			{
 				printf("\nBust!\n");
@@ -128,11 +153,14 @@ int main()
 
 		}
 		while (input == 'Y' || input == 'y' || input == '\n');
-		while (AIHit())
+		dealer.showCard=true;
+		printGame();
+		printf("Calculating...\n");
+		while (AIHit(&dealer, &player))
 		{
 			printGame();
-			dealer.cards[dealer.count++] = pokerShuffled[pokerIdx++];
-
+			deal(&dealer);
+			printGame();
 			if(dealer.total()>21)
 			{
 				printf("\nBust!\n");
@@ -148,26 +176,28 @@ int main()
 		else 
 			dealerWin();
 EndGame:
-
+		printf("\n要继续么？(Y/n)");
 		input = waitInput();
 	}
 	return 0;
 }
 void initAI()
 {
+	
 	for(int i=1;i<10;i++)
 	{
-		pokerCount[i]=4;
 		P[i]=1.0/13.0;
+		pokerCount[i]=4;
 	}
+	pokerCount[10]=16;
 	P[10]=4.0/13.0;
 }
-double Prob(int point, double* p, int min)
+double Prob(int point, int ex, int depth)
 {
-	if(point == 21)
-		return 1;
-	if(point >21)
+	if(point > 21)
 		return 0;
+	if( (point == 21 || point>= ex))
+		return 1;
 	double prob = 0;
 	for(int i=1;i<=10;i++)
 	{
@@ -175,42 +205,45 @@ double Prob(int point, double* p, int min)
 			continue;
 		pokerCount[i]--;
 		int sum = i + point;
-		if(sum < min)
-		{
-			prob += P[i] * Prob(sum, p, min);
-		}
-		for(int j = sum; j<=21; j++)
-		{
-			prob += P[i] * p[i];
-		}
+		prob += P[i] * Prob(sum, ex, depth+1);
 		pokerCount[i]++;
 	}
+	
 	return prob;
 }
-bool AIHit()
+bool AIHit(Player* ai, Player* opp)
 {
 	double n[22];
 	double p[22];
+	double winProb=0;
 	for(int i=0;i<22;i++)
 		n[i]=0;
-	int playerP = player.total() - pokers[player.cards[0]].value;
+	int oppP = opp->total() - pokers[opp->cards[0]].value;
+	int aiP = ai->total();
 	for(int i=1;i<=10;i++)
 	{
-		int sum = playerP+i;
+		int sum = oppP+i;
 		if(sum <= 21)
 			n[sum] += P[i];
 	}
 	double sum = Sum(n, 1, 21);
+	double ex=0;
 	for(int i=1;i<22;i++)
 	{
 		p[i]=n[i]/sum;
+		if(aiP >= i)
+			winProb +=p [i];
+		ex+=p[i]*i;
 	}
-	int dealerP = dealer.total();
-	double prob = Prob(dealerP, p, playerP);
-	if(prob > 0.5)
+	double prob = Prob(aiP,(int)ex, 0);
+	if(prob > winProb+0.2)
 		return true;
 	else 
 		return false;
+}
+void deal(Player* player)
+{
+	player->cards[player->count++]=pokerShuffled[pokerIdx++];
 }
 long Sum(long* arr, int from, int to)
 {
@@ -259,6 +292,7 @@ int Player::total()
 	{
 		total += pokers[cards[i]].value;
 	}
+	return total;
 }
 void Poker::print(int x0,int y0)
 {
@@ -291,6 +325,7 @@ char getch()
 */
 void init()
 {
+	initAI();
 	FILE *fin=fopen("poker.dat","r");
 	int ln=1;
 	int count=0;
@@ -374,16 +409,23 @@ void printGame()
 	setCursorPos(1,line);
 	printf("这是庄家的手牌: \n");
 	int point=0;
-	printf("共 %d 张手牌，总点数为：%d\n\n",dealer.count, point);
+	if(dealer.showCard)
+		printf("共 %d 张手牌，总点数为：%d\n\n",dealer.count, dealer.total());
+	else
+		printf("共 %d 张手牌，总点数为：?\n\n",dealer.count);
+
 	line += 3;
 	for(int i=0;i<dealer.count;i++)
 	{
-		pokers[dealer.cards[i]].print((CARD_WIDTH + 1) * i + 1, line);
+		if(i==0 && !dealer.showCard)	
+			pokerBack.print((CARD_WIDTH + 1) * i + 1, line);
+		else
+			pokers[dealer.cards[i]].print((CARD_WIDTH + 1) * i + 1, line);
 	}
 	line += CARD_HEIGHT + 2;
 	setCursorPos(1,line);
 	printf("这是你的手牌: \n");
-	printf("共 %d 张手牌，总点数为：%d\n\n",player.count, point);
+	printf("共 %d 张手牌，总点数为：%d\n\n",player.count, player.total());
 	line+=3;
 	for(int i=0;i<player.count;i++)
 	{
