@@ -23,11 +23,14 @@ struct Poker
 	void print(int x0,int y0);
 };
 void init();
+void initAI();
 void shuffle(int *rlist);
 void readline(char* lnptr, int size, FILE *fp);
 void printGame();
+double Sum(double* arr, int from, int to);
+long Sum(long* arr, int from, int to);
 char waitInput();
-void AIHit();
+bool AIHit();
 void dealerWin();
 void playerWin();
 void push();
@@ -55,6 +58,8 @@ Poker pokers[CARD_COUNT];
 Poker pokerBack;
 int pokerShuffled[CARD_COUNT];
 int pokerIdx;
+double P[11];
+int pokerCount[11];
 Player player,dealer;
 int main()
 {
@@ -90,7 +95,7 @@ int main()
 	printf("欢迎来到   * 澳门首家线上赌场 *  \n\n");
 	printf("是否开始游戏？(Y/n 回复TD退出游戏)");
 	char text[1024];
-	scanf("%s",&text);
+	scanf("%s",text);
 	waitInput();
 	if(text=="TD")
 		exit(0);
@@ -112,7 +117,7 @@ int main()
 			printGame();
 			printf("要牌么？(Y/n)");
 			input = waitInput();
-			if(input == 'Y' || input == 'y' || inut == '\n')
+			if(input == 'Y' || input == 'y' || input == '\n')
 				player.cards[player.count++]=pokerShuffled[pokerIdx++];
 			if(player.total()>21)
 			{
@@ -148,6 +153,83 @@ EndGame:
 	}
 	return 0;
 }
+void initAI()
+{
+	for(int i=1;i<10;i++)
+	{
+		pokerCount[i]=4;
+		P[i]=1.0/13.0;
+	}
+	P[10]=4.0/13.0;
+}
+double Prob(int point, double* p, int min)
+{
+	if(point == 21)
+		return 1;
+	if(point >21)
+		return 0;
+	double prob = 0;
+	for(int i=1;i<=10;i++)
+	{
+		if(pokerCount[i]<=0)
+			continue;
+		pokerCount[i]--;
+		int sum = i + point;
+		if(sum < min)
+		{
+			prob += P[i] * Prob(sum, p, min);
+		}
+		for(int j = sum; j<=21; j++)
+		{
+			prob += P[i] * p[i];
+		}
+		pokerCount[i]++;
+	}
+	return prob;
+}
+bool AIHit()
+{
+	double n[22];
+	double p[22];
+	for(int i=0;i<22;i++)
+		n[i]=0;
+	int playerP = player.total() - pokers[player.cards[0]].value;
+	for(int i=1;i<=10;i++)
+	{
+		int sum = playerP+i;
+		if(sum <= 21)
+			n[sum] += P[i];
+	}
+	double sum = Sum(n, 1, 21);
+	for(int i=1;i<22;i++)
+	{
+		p[i]=n[i]/sum;
+	}
+	int dealerP = dealer.total();
+	double prob = Prob(dealerP, p, playerP);
+	if(prob > 0.5)
+		return true;
+	else 
+		return false;
+}
+long Sum(long* arr, int from, int to)
+{
+	long sum=0;
+	for(int i=from;i<=to;i++)
+	{
+		sum+=arr[i];
+	}
+	return sum;
+}
+double Sum(double* arr, int from, int to)
+{
+	double sum=0;
+	for(int i=from;i<=to;i++)
+	{
+		sum+=arr[i];
+	}
+	return sum;
+}
 
 void readline(char* lnptr, int size, FILE *fp)
 {
@@ -169,6 +251,14 @@ char waitInput()
 	if (input == 0)
 		input = ch;
 	return input;
+}
+int Player::total()
+{
+	int total=0;
+	for(int i=0;i<count;i++)
+	{
+		total += pokers[cards[i]].value;
+	}
 }
 void Poker::print(int x0,int y0)
 {
@@ -301,4 +391,13 @@ void printGame()
 	}
 	line += CARD_HEIGHT + 2;
 	setCursorPos(1,line);
+}
+void dealerWin()
+{
+}
+void playerWin()
+{
+}
+void push()
+{
 }
