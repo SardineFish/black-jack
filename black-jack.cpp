@@ -25,9 +25,10 @@ struct Poker
 	void print(int x0,int y0);
 };
 void init();
-void shuffle(Poker *rlist);
+void shuffle(int *rlist);
 void readline(char* lnptr, int size, FILE *fp);
 void printGame();
+char waitInput();
 void msleep(long milisec)
 {
 	usleep(milisec*1000);
@@ -43,12 +44,14 @@ struct Node
 struct Player
 {
 	int cards[CARD_COUNT];
-	int count;
-	int money;
+	int count=0;
+	int money=0;
+	bool showCard=false;
 };
 Poker pokers[CARD_COUNT];
 Poker pokerBack;
-Poker *pokerShuffled;
+int* pokerShuffled;
+int pokerIdx;
 Player player,dealer;
 int main()
 {
@@ -94,10 +97,22 @@ int main()
 	while(input=='y' || input=='Y')
 	{
 		printf("洗牌...洗牌...洗牌\n");
+		pokerIdx = 0;
 		if(pokerShuffled==NULL)
-			pokerShuffled = (Poker*)malloc(sizeof(Poker)*CARD_COUNT);
+			pokerShuffled = (int*)malloc(sizeof(int)*CARD_COUNT);
 		shuffle(pokerShuffled);
+		Hit:
 		printGame();
+		printf("要牌么？(Y/n)");
+		input = waitInput();
+		if(input == EOF)
+			input = '\n';
+		while (input == 'Y' || input == 'y' || input == '\n')
+		{
+			player.cards[player.count++]=pokerShuffled[pokerIdx++];
+			goto Hit;
+			
+		}
 		getchar();
 	}
 	return 0;
@@ -112,7 +127,18 @@ void readline(char* lnptr, int size, FILE *fp)
 			lnptr[idx++]=ch;
 	}
 }
-
+char waitInput()
+{
+	char input = 0;
+	char ch = 0;
+	while ((ch=getchar()) != '\n')
+	{
+		input = ch;
+	}
+	if (input == 0)
+		input = ch;
+	return input;
+}
 void Poker::print(int x0,int y0)
 {
 	setCursorPos(x0, y0);
@@ -180,7 +206,7 @@ void init()
 	fclose(fin);
 	//pokerBack.print(1,1);
 }
-void shuffle(Poker *rlist)
+void shuffle(int *rlist)
 {
 	srand(time(NULL));
 	int list[CARD_COUNT];
@@ -197,6 +223,8 @@ void shuffle(Poker *rlist)
 		{
 			list[j]=list[j]+1;
 		}
+		rlist[i-1]=p;
+		/*
 		rlist[i-1].value=pokers[p].value;
 		rlist[i-1].type=pokers[p].type;
 		for(int y=0;y<CARD_INNER_HEIGHT;y++)
@@ -206,6 +234,7 @@ void shuffle(Poker *rlist)
 				rlist[i-1].graphic[y][x]=pokers[p].graphic[y][x];
 			}
 		}
+		*/
 	}
 	/*
 	for(int i=0;i<CARD_COUNT;i++)
@@ -222,13 +251,23 @@ void printGame()
 	pokerBack.print(2,2);
 	line+=CARD_HEIGHT+3;
 	setCursorPos(1,line);
-	printf("这是庄家的手牌：\n");
-	int point;
+	printf("这是庄家的手牌: \n");
+	int point=0;
+	printf("共 %d 张手牌，总点数为：%d\n\n",dealer.count, point);
+	line += 3;
 	for(int i=0;i<dealer.count;i++)
 	{
 		pokers[dealer.cards[i]].print((CARD_WIDTH+1)*i,line);
 	}
 	line += CARD_HEIGHT + 2;
 	setCursorPos(1,line);
-	printf("共 %d 张手牌，总点数为：%d",dealer.count, point);
+	printf("这是你的手牌: \n");
+	printf("共 %d 张手牌，总点数为：%d\n\n",player.count, point);
+	line+=3;
+	for(int i=0;i<player.count;i++)
+	{
+		pokers[player.cards[i]].print((CARD_WIDTH + 1) * i, line);
+	}
+	line += CARD_HEIGHT + 2;
+	setCursorPos(1,line);
 }
