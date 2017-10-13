@@ -120,18 +120,19 @@ int main()
 		pokerIdx = 0;
 		player.count=0;
 		dealer.count=0;
+		dealer.showCard=false;
 		shuffle(pokerShuffled);
 		printGame();
-		msleep(500);
+		msleep(800);
 		deal(&dealer);
 		printGame();
-		msleep(500);
+		msleep(800);
 		deal(&dealer);
 		printGame();
-		msleep(500);
+		msleep(800);
 		deal(&player);
 		printGame();
-		msleep(500);
+		msleep(800);
 		deal(&player);
 		printGame();
 		do
@@ -436,10 +437,26 @@ void printGame()
 }
 void dealerWin()
 {
+	printf("\n\n");
+	printf("你输啦！！！哈哈哈哈哈哈！！！！\n\n");
+	msleep(1000);
+	printf("不再来一局何以挽回颜面？！\n\n");
 }
 void playerWin()
 {
+	printf("\n\n");
+	printf("Emmmmmmmmm.........\n\n");
+	msleep(1000);
+	printf("这一定是Ai算法的锅....\n");
+	msleep(800);
+	printf("开发者刚刚优化了Ai算法，不再来一局？\n\n");
 }
 void push()
 {
+	printf("\n\n");
+	printf("这表明……\n");
+	msleep(800);
+	printf("你的智商，和这辣鸡Ai算法，不相上下。\n\n");
+	msleep(800);
+	printf("不再来一局，以展示你身为人类的优越性？\n\n");
 }
